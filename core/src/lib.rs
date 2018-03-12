@@ -1,15 +1,21 @@
 #![cfg_attr(feature = "cargo-clippy", allow(unused_io_amount))]
 
-#[macro_use] extern crate error_chain;
-#[macro_use] extern crate futures;
-#[macro_use] extern crate lazy_static;
-#[macro_use] extern crate log;
-#[macro_use] extern crate serde_derive;
+#[macro_use]
+extern crate error_chain;
+#[macro_use]
+extern crate futures;
+#[macro_use]
+extern crate lazy_static;
+#[macro_use]
+extern crate log;
+#[macro_use]
+extern crate serde_derive;
 
 extern crate base64;
 extern crate byteorder;
 extern crate bytes;
 extern crate crypto;
+extern crate extprim;
 extern crate hyper;
 extern crate num_bigint;
 extern crate num_integer;
@@ -26,17 +32,19 @@ extern crate uuid;
 
 extern crate librespot_protocol as protocol;
 
-#[macro_use] mod component;
-pub mod apresolve;
+#[macro_use]
+mod component;
+mod apresolve;
 pub mod audio_key;
 pub mod authentication;
 pub mod cache;
 pub mod channel;
 pub mod config;
+mod connection;
 pub mod diffie_hellman;
+pub mod keymaster;
 pub mod mercury;
 pub mod session;
+pub mod spotify_id;
 pub mod util;
 pub mod version;
-
-include!(concat!(env!("OUT_DIR"), "/lib.rs"));

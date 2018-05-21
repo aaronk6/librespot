@@ -1,7 +1,7 @@
 use byteorder::{LittleEndian, ReadBytesExt};
 use futures;
-use futures::{future, Future};
 use futures::sync::oneshot;
+use futures::{future, Future};
 use std;
 use std::borrow::Cow;
 use std::io::{Read, Result, Seek, SeekFrom};
@@ -93,10 +93,8 @@ impl NormalisationData {
     }
 
     fn get_factor(config: &PlayerConfig, data: NormalisationData) -> f32 {
-        let mut normalisation_factor = f32::powf(
-            10.0,
-            (data.track_gain_db + config.normalisation_pregain) / 20.0,
-        );
+        let mut normalisation_factor =
+            f32::powf(10.0, (data.track_gain_db + config.normalisation_pregain) / 20.0);
 
         if normalisation_factor * data.track_peak > 1.0 {
             warn!("Reducing normalisation factor to prevent clipping. Please add negative pregain to avoid.");
@@ -231,12 +229,7 @@ impl PlayerState {
         use self::PlayerState::*;
         match *self {
             Stopped | EndOfTrack { .. } => None,
-            Paused {
-                ref mut decoder, ..
-            }
-            | Playing {
-                ref mut decoder, ..
-            } => Some(decoder),
+            Paused { ref mut decoder, .. } | Playing { ref mut decoder, .. } => Some(decoder),
             Invalid => panic!("invalid state"),
         }
     }
@@ -348,6 +341,10 @@ impl PlayerInternal {
                     self.handle_packet(packet, current_normalisation_factor);
                 }
             }
+
+            if self.session.is_invalid() {
+                return;
+            }
         }
     }
 
@@ -372,19 +369,21 @@ impl PlayerInternal {
     fn handle_packet(&mut self, packet: Option<VorbisPacket>, normalisation_factor: f32) {
         match packet {
             Some(mut packet) => {
-                if let Some(ref editor) = self.audio_filter {
-                    editor.modify_stream(&mut packet.data_mut())
-                };
+                if packet.data().len() > 0 {
+                    if let Some(ref editor) = self.audio_filter {
+                        editor.modify_stream(&mut packet.data_mut())
+                    };
 
-                if self.config.normalisation && normalisation_factor != 1.0 {
-                    for x in packet.data_mut().iter_mut() {
-                        *x = (*x as f32 * normalisation_factor) as i16;
+                    if self.config.normalisation && normalisation_factor != 1.0 {
+                        for x in packet.data_mut().iter_mut() {
+                            *x = (*x as f32 * normalisation_factor) as i16;
+                        }
                     }
-                }
 
-                if let Err(err) = self.sink.write(&packet.data()) {
-                    error!("Could not write audio: {}", err);
-                    self.stop_sink();
+                    if let Err(err) = self.sink.write(&packet.data()) {
+                        error!("Could not write audio: {}", err);
+                        self.stop_sink();
+                    }
                 }
             }
 
@@ -523,10 +522,7 @@ impl PlayerInternal {
                 .map(|alt_id| Track::get(&self.session, *alt_id));
             let alternatives = future::join_all(alternatives).wait().unwrap();
 
-            alternatives
-                .into_iter()
-                .find(|alt| alt.available)
-                .map(Cow::Owned)
+            alternatives.into_iter().find(|alt| alt.available).map(Cow::Owned)
         }
     }
 
@@ -556,10 +552,7 @@ impl PlayerInternal {
         let file_id = match track.files.get(&format) {
             Some(&file_id) => file_id,
             None => {
-                warn!(
-                    "Track \"{}\" is not available in format {:?}",
-                    track.name, format
-                );
+                warn!("Track \"{}\" is not available in format {:?}", track.name, format);
                 return None;
             }
         };

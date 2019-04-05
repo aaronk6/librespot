@@ -17,7 +17,7 @@ use core::spotify_id::SpotifyId;
 use audio::{AudioDecrypt, AudioFile};
 use audio::{VorbisDecoder, VorbisPacket};
 use audio_backend::Sink;
-use metadata::{FileFormat, Metadata, Track};
+use metadata::{Artist, FileFormat, Metadata, Track};
 use mixer::AudioFilter;
 
 pub struct Player {
@@ -588,6 +588,11 @@ impl PlayerInternal {
         }
 
         info!("Track \"{}\" loaded", track.name);
+
+        let artist = Artist::get(&self.session, track.artists[0]).wait().unwrap();
+
+        // Send metatada in json (metadata:<json>) for simple parsing and extensibility
+        info!("metadata:{{\"ARTIST\":\"{}\",\"TITLE\":\"{}\"}}", artist.name, track.name);
 
         Some((decoder, normalisation_factor))
     }
